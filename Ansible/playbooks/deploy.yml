@@ -1,0 +1,44 @@
+---
+- hosts: all
+  gather_facts: false
+
+  vars_files:
+    - vars.yml
+
+  tasks:
+    # https://docs.ansible.com/ansible/latest/collections/ansible/builtin/git_module.html
+    - name: Clone/pull project repo
+      git:
+        repo: "{{ project_repo }}"
+        dest: "{{ project_path }}"
+        force: true
+
+    - name: Create venv and install requirements.txt
+      ansible.builtin.pip:
+        requirements: "{{ project_path }}/requirements.txt"
+        virtualenv: "{{ project_path }}/venv"
+
+    - name: Give permission to execute manage.py
+      ansible.builtin.file:
+        path: "{{ project_path }}/manage.py"
+        mode: '0777'
+
+    - name: Create migrations
+      community.general.django_manage:
+        command: makemigrations
+        project_path: "{{ project_path }}"
+        virtualenv: "{{ project_path }}/venv"
+
+    - name: Execute migrations
+      community.general.django_manage:
+        command: makemigrations
+        project_path: "{{ project_path }}"
+        virtualenv: "{{ project_path }}/venv"
+
+    
+    - name: Load the initial_data fixture into the application
+      community.general.django_manage:
+        command: loaddata
+        project_path: "{{ project_path }}"
+        fixtures: "{{ project_path }}/fixtures/polls_data.json"
+        virtualenv: "{{ project_path }}/venv"
